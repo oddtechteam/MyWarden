@@ -2,7 +2,7 @@ export interface IUser {
   id: string
   email: string
   role: 'super_admin' | 'hr_admin' | 'manager' | 'employee'
-  full_name: string
+  full_name?: string  // added in Phase 1 Part 3
 }
 
 export interface ILoginRequest {

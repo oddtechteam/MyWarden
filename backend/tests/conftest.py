@@ -1,6 +1,8 @@
 import pytest
 import pytest_asyncio
+import sqlalchemy as sa
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.main import app
@@ -26,10 +28,24 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest_asyncio.fixture(autouse=True, scope="session")
 async def setup_db():
     async with test_engine.begin() as conn:
+        await conn.execute(sa.text("""
+            DO $$ BEGIN
+                CREATE TYPE userrole AS ENUM ('super_admin', 'hr_admin', 'manager', 'employee');
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END $$
+        """))
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+        await conn.execute(sa.text("DROP TYPE IF EXISTS userrole"))
+
+
+@pytest_asyncio.fixture
+async def db_session():
+    async with TestSessionLocal() as session:
+        yield session
 
 
 @pytest_asyncio.fixture
