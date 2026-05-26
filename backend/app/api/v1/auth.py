@@ -71,6 +71,7 @@ async def get_me(current_user: Employee = Depends(get_current_user)):
             "id": str(current_user.id),
             "email": current_user.email,
             "role": current_user.role.value,
+            "full_name": current_user.full_name,
         },
         "message": "OK",
     }

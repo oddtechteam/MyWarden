@@ -2,8 +2,9 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Enum as SAEnum, String
+from sqlalchemy import Boolean, Column, Date, DateTime, Enum as SAEnum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -13,6 +14,12 @@ class UserRole(str, enum.Enum):
     hr_admin = "hr_admin"
     manager = "manager"
     employee = "employee"
+
+
+class EmployeeType(str, enum.Enum):
+    FULL_TIME = "FULL_TIME"
+    HOURLY = "HOURLY"
+    CONTRACT = "CONTRACT"
 
 
 class Employee(Base):
@@ -26,7 +33,23 @@ class Employee(Base):
         nullable=False,
         default=UserRole.employee,
     )
+    full_name = Column(String(255), nullable=True)
+    phone = Column(String(20), nullable=True)
+    job_title = Column(String(100), nullable=True)
+    employee_type = Column(
+        SAEnum(EmployeeType, name="employeetype", create_type=False),
+        nullable=False,
+        default=EmployeeType.FULL_TIME,
+    )
+    department_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("departments.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    join_date = Column(Date, nullable=True)
+    base_salary = Column(Numeric(12, 2), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    # TODO: add remaining employee profile fields in Phase 1 Part 3
+
+    department = relationship("Department", back_populates="employees", foreign_keys=[department_id])

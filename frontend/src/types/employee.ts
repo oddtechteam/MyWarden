@@ -1,26 +1,62 @@
+export type UserRole = 'super_admin' | 'hr_admin' | 'manager' | 'employee'
 export type EmployeeType = 'FULL_TIME' | 'HOURLY' | 'CONTRACT'
-export type EmployeeRole = 'super_admin' | 'hr_admin' | 'manager' | 'employee'
+
+export interface IDepartmentBrief {
+  id: string
+  name: string
+}
 
 export interface IEmployee {
   id: string
-  full_name: string
   email: string
-  phone: string
+  full_name: string | null
+  phone: string | null
+  job_title: string | null
+  role: UserRole
   employee_type: EmployeeType
-  role: EmployeeRole
-  department_id: string
+  department_id: string | null
+  department: IDepartmentBrief | null
+  join_date: string | null
+  base_salary: string | null
   is_active: boolean
-  face_enrolled: boolean
   created_at: string
-  updated_at: string
 }
 
 export interface IEmployeeCreate {
-  full_name: string
   email: string
-  phone: string
-  employee_type: EmployeeType
-  role: EmployeeRole
-  department_id: string
   password: string
+  full_name: string
+  phone?: string
+  job_title?: string
+  role: UserRole
+  employee_type: EmployeeType
+  department_id?: string
+  join_date?: string
+  base_salary?: number
+}
+
+export interface IEmployeeUpdate {
+  full_name?: string
+  phone?: string
+  job_title?: string
+  role?: UserRole
+  employee_type?: EmployeeType
+  department_id?: string
+  join_date?: string
+  base_salary?: number
+}
+
+export interface IEmployeeListResponse {
+  items: IEmployee[]
+  total: number
+  page: number
+  limit: number
+  pages: number
+}
+
+export interface IDepartment {
+  id: string
+  name: string
+  description: string | null
+  is_active: boolean
 }

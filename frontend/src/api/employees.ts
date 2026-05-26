@@ -1,33 +1,54 @@
-// TODO: implement in Phase 1 Part 3
 import api from '@/lib/axios'
-import type { IEmployee, IEmployeeCreate } from '@/types/employee'
+import type {
+  IDepartment,
+  IEmployee,
+  IEmployeeCreate,
+  IEmployeeListResponse,
+  IEmployeeUpdate,
+} from '@/types/employee'
 
-export async function getEmployees(page = 1, limit = 20) {
-  const { data } = await api.get<{ data: IEmployee[]; message: string }>(
-    '/api/v1/employees',
-    { params: { page, limit } },
-  )
-  return data
+interface ApiResponse<T> {
+  data: T
+  message: string
 }
 
-export async function createEmployee(payload: IEmployeeCreate) {
-  const { data } = await api.post<{ data: IEmployee; message: string }>(
-    '/api/v1/employees',
-    payload,
-  )
-  return data
+export async function listEmployees(params?: {
+  page?: number
+  limit?: number
+  search?: string
+  department_id?: string
+  employee_type?: string
+  is_active?: boolean
+}) {
+  const { data } = await api.get<ApiResponse<IEmployeeListResponse>>('/api/v1/employees/', { params })
+  return data.data
 }
 
 export async function getEmployee(id: string) {
-  const { data } = await api.get<{ data: IEmployee; message: string }>(
-    `/api/v1/employees/${id}`,
-  )
-  return data
+  const { data } = await api.get<ApiResponse<IEmployee>>(`/api/v1/employees/${id}`)
+  return data.data
+}
+
+export async function createEmployee(payload: IEmployeeCreate) {
+  const { data } = await api.post<ApiResponse<IEmployee>>('/api/v1/employees/', payload)
+  return data.data
+}
+
+export async function updateEmployee(id: string, payload: IEmployeeUpdate) {
+  const { data } = await api.put<ApiResponse<IEmployee>>(`/api/v1/employees/${id}`, payload)
+  return data.data
 }
 
 export async function deactivateEmployee(id: string) {
-  const { data } = await api.delete<{ message: string }>(
-    `/api/v1/employees/${id}`,
-  )
-  return data
+  await api.delete(`/api/v1/employees/${id}`)
+}
+
+export async function listDepartments() {
+  const { data } = await api.get<ApiResponse<IDepartment[]>>('/api/v1/departments/')
+  return data.data
+}
+
+export async function createDepartment(payload: { name: string; description?: string }) {
+  const { data } = await api.post<ApiResponse<IDepartment>>('/api/v1/departments/', payload)
+  return data.data
 }

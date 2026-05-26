@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, employees, attendance, payroll, leave, reports
+from app.api.v1 import attendance, auth, departments, employees, leave, payroll, reports
 
 app = FastAPI(
     title="MyWarden API",
@@ -19,6 +19,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(employees.router, prefix="/api/v1/employees", tags=["employees"])
+app.include_router(departments.router, prefix="/api/v1/departments", tags=["departments"])
 app.include_router(attendance.router, prefix="/api/v1/attendance-logs", tags=["attendance"])
 app.include_router(payroll.router, prefix="/api/v1/payroll-runs", tags=["payroll"])
 app.include_router(leave.router, prefix="/api/v1/leave", tags=["leave"])

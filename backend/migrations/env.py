@@ -9,6 +9,7 @@ from app.config import settings
 from app.database import Base
 
 # import all models so their tables are registered with Base.metadata
+import app.models.department  # noqa: F401
 import app.models.employee  # noqa: F401
 import app.models.attendance  # noqa: F401
 import app.models.payroll  # noqa: F401
