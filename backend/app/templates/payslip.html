@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 32px 40px;
+  }
+
+  /* ── Header ────────────────────────────────────── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid #1e3a5f;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+  .company-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1e3a5f;
+    letter-spacing: -0.5px;
+  }
+  .company-tagline {
+    font-size: 9px;
+    color: #6b7280;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .payslip-title {
+    text-align: right;
+  }
+  .payslip-title h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e3a5f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .payslip-title .period {
+    font-size: 12px;
+    color: #374151;
+    margin-top: 3px;
+  }
+  .payslip-title .revision {
+    font-size: 9px;
+    color: #9ca3af;
+    margin-top: 2px;
+  }
+
+  /* ── Two-column info grid ───────────────────────── */
+  .info-grid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .info-box {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .info-box h3 {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 4px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .info-label {
+    color: #6b7280;
+    font-size: 10px;
+  }
+  .info-value {
+    font-weight: 600;
+    font-size: 10px;
+    color: #111827;
+    text-align: right;
+  }
+
+  /* ── Attendance summary bar ─────────────────────── */
+  .attendance-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .att-cell {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    background: #f8fafc;
+  }
+  .att-cell:not(:last-child) {
+    border-right: 1px solid #e2e8f0;
+  }
+  .att-cell .att-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e3a5f;
+    line-height: 1;
+  }
+  .att-cell .att-lbl {
+    font-size: 9px;
+    color: #6b7280;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Earnings / Deductions tables ───────────────── */
+  .tables-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .table-wrap {
+    flex: 1;
+  }
+  .table-wrap h3 {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+  thead th {
+    background: #1e3a5f;
+    color: #fff;
+    font-weight: 600;
+    padding: 5px 8px;
+    text-align: left;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  thead th:last-child {
+    text-align: right;
+  }
+  tbody tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+  tbody td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #374151;
+  }
+  tbody td:last-child {
+    text-align: right;
+    font-weight: 500;
+  }
+  tfoot td {
+    padding: 6px 8px;
+    font-weight: 700;
+    font-size: 11px;
+    border-top: 2px solid #1e3a5f;
+  }
+  tfoot td:last-child {
+    text-align: right;
+    color: #1e3a5f;
+  }
+
+  /* ── Net salary highlight ───────────────────────── */
+  .net-box {
+    background: #1e3a5f;
+    color: #fff;
+    border-radius: 6px;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .net-box .net-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+  }
+  .net-box .net-amount {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .net-box .net-currency {
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0.7;
+    margin-right: 4px;
+  }
+
+  /* ── Footer ─────────────────────────────────────── */
+  .footer {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    color: #9ca3af;
+    font-size: 9px;
+  }
+  .watermark {
+    font-size: 8px;
+    color: #d1d5db;
+    text-align: center;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────── -->
+<div class="header">
+  <div>
+    <div class="company-name">MyWarden</div>
+    <div class="company-tagline">Employee Management System</div>
+  </div>
+  <div class="payslip-title">
+    <h2>Pay Slip</h2>
+    <div class="period">{{ month_name }} {{ period_year }}</div>
+    <div class="revision">Revision {{ revision }}</div>
+  </div>
+</div>
+
+<!-- ── Employee + Payment info ────────────────────── -->
+<div class="info-grid">
+  <div class="info-box">
+    <h3>Employee Details</h3>
+    <div class="info-row">
+      <span class="info-label">Name</span>
+      <span class="info-value">{{ employee_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Email</span>
+      <span class="info-value">{{ employee_email }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Job Title</span>
+      <span class="info-value">{{ job_title or "—" }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Department</span>
+      <span class="info-value">{{ department or "—" }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Employment Type</span>
+      <span class="info-value">{{ employee_type }}</span>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <h3>Pay Period Details</h3>
+    <div class="info-row">
+      <span class="info-label">Pay Period</span>
+      <span class="info-value">{{ month_name }} {{ period_year }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Payment Date</span>
+      <span class="info-value">{{ paid_date or "—" }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Approved On</span>
+      <span class="info-value">{{ approved_date or "—" }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Generated On</span>
+      <span class="info-value">{{ generated_date }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Currency</span>
+      <span class="info-value">INR (₹)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Attendance bar ─────────────────────────────── -->
+<div class="attendance-bar">
+  <div class="att-cell">
+    <div class="att-val">{{ working_days }}</div>
+    <div class="att-lbl">Working Days</div>
+  </div>
+  <div class="att-cell">
+    <div class="att-val">{{ days_present }}</div>
+    <div class="att-lbl">Days Present</div>
+  </div>
+  <div class="att-cell">
+    <div class="att-val">{{ days_absent }}</div>
+    <div class="att-lbl">Days Absent</div>
+  </div>
+  <div class="att-cell">
+    <div class="att-val">{{ attendance_pct }}%</div>
+    <div class="att-lbl">Attendance</div>
+  </div>
+</div>
+
+<!-- ── Earnings + Deductions ─────────────────────── -->
+<div class="tables-row">
+  <div class="table-wrap">
+    <h3>Earnings</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            {% if employee_type == "HOURLY" %}
+              Prorated Base Salary ({{ days_present }}/{{ working_days }} days)
+            {% else %}
+              Base Salary
+            {% endif %}
+          </td>
+          <td>{{ "{:,.2f}".format(gross_salary) }}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Gross Salary</td>
+          <td>{{ "{:,.2f}".format(gross_salary) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <h3>Deductions</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if deduction_breakdown %}
+          {% for code, amount in deduction_breakdown.items() %}
+          <tr>
+            <td>{{ deduction_labels.get(code, code) }}</td>
+            <td>{{ "{:,.2f}".format(amount) }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="2" style="text-align:center;color:#9ca3af;font-style:italic;">No deductions</td>
+          </tr>
+        {% endif %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total Deductions</td>
+          <td>{{ "{:,.2f}".format(total_deductions) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ── Net salary ─────────────────────────────────── -->
+<div class="net-box">
+  <div class="net-label">NET TAKE-HOME SALARY</div>
+  <div>
+    <span class="net-currency">₹</span>
+    <span class="net-amount">{{ "{:,.2f}".format(net_salary) }}</span>
+  </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────── -->
+<div class="footer">
+  <span>This is a system-generated payslip and does not require a signature.</span>
+  <span>MyWarden EMS · Confidential</span>
+</div>
+<div class="watermark">Generated by MyWarden Employee Management System</div>
+
+</body>
+</html>

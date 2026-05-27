@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import attendance, auth, departments, employees, leave, payroll, reports, shifts
+from app.api.v1 import attendance, auth, departments, deduction_rules, employees, leave, payroll, reports, shifts
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.include_router(departments.router, prefix="/api/v1/departments", tags=["depa
 app.include_router(attendance.router, prefix="/api/v1/attendance-logs", tags=["attendance"])
 app.include_router(shifts.router, prefix="/api/v1/shifts", tags=["shifts"])
 app.include_router(payroll.router, prefix="/api/v1/payroll-runs", tags=["payroll"])
+app.include_router(deduction_rules.router, prefix="/api/v1/deduction-rules", tags=["deduction-rules"])
 app.include_router(leave.router, prefix="/api/v1/leave", tags=["leave"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 
