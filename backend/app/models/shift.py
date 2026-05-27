@@ -1,21 +1,23 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 
 
-class Department(Base):
-    __tablename__ = "departments"
+class Shift(Base):
+    __tablename__ = "shifts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), unique=True, nullable=False, index=True)
-    description = Column(String(500), nullable=True)
+    name = Column(String(100), nullable=False, unique=True)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    grace_minutes = Column(Integer, nullable=False, default=15)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
-    employees = relationship("Employee", back_populates="department", foreign_keys="Employee.department_id")
+    attendance_logs = relationship("AttendanceLog", back_populates="shift")
