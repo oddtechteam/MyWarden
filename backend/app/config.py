@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     S3_BUCKET_NAME: str = "mywarden-enrollments"
-    S3_ENDPOINT_URL: str = ""  # set for local MinIO; leave blank for real AWS S3
+    S3_ENDPOINT_URL: str = ""
+
+    # "local" saves files to LOCAL_STORAGE_PATH; "s3" uses S3/MinIO
+    STORAGE_BACKEND: str = "local"
+    LOCAL_STORAGE_PATH: str = "local_storage"
 
     DEEPFACE_MODEL: str = "Facenet512"
     FACE_MATCH_THRESHOLD: float = 0.80

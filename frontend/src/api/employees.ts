@@ -43,6 +43,15 @@ export async function deactivateEmployee(id: string) {
   await api.delete(`/api/v1/employees/${id}`)
 }
 
+export async function enrollFace(employeeId: string, frames: Blob[]): Promise<void> {
+  const form = new FormData()
+  frames.forEach((blob, i) => form.append('files', blob, `frame_${String(i).padStart(2, '0')}.jpg`))
+  await api.post(`/api/v1/employees/${employeeId}/enroll-face`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
+  })
+}
+
 export async function listDepartments() {
   const { data } = await api.get<ApiResponse<IDepartment[]>>('/api/v1/departments/')
   return data.data

@@ -51,6 +51,7 @@ class EmployeeResponseSchema(BaseModel):
     department: Optional[DepartmentBriefSchema]
     join_date: Optional[date]
     base_salary: Optional[Decimal]
+    face_enrolled: bool
     is_active: bool
     created_at: datetime
 

@@ -1,17 +1,23 @@
+import asyncio
+import datetime
+import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.database import get_db
+from app.database import AsyncSessionLocal, get_db
 from app.models.employee import Employee, EmployeeType
 from app.schemas.employee import EmployeeCreateSchema, EmployeeResponseSchema, EmployeeUpdateSchema
 from app.utils.auth import get_current_user, hash_password, require_role
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
+# ─── Employee list ─────────────────────────────────────────────────────────
 
 @router.get("/")
 async def list_employees(
@@ -57,6 +63,8 @@ async def list_employees(
     }
 
 
+# ─── Create ────────────────────────────────────────────────────────────────
+
 @router.post("/", status_code=201)
 async def create_employee(
     payload: EmployeeCreateSchema,
@@ -89,13 +97,20 @@ async def create_employee(
     return {"data": EmployeeResponseSchema.model_validate(result.scalar_one()), "message": "Employee created"}
 
 
+# ─── Self-profile ──────────────────────────────────────────────────────────
+
 @router.get("/me")
-async def get_my_profile(current_user: Employee = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_my_profile(
+    current_user: Employee = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(
         select(Employee).options(selectinload(Employee.department)).where(Employee.id == current_user.id)
     )
     return {"data": EmployeeResponseSchema.model_validate(result.scalar_one()), "message": "OK"}
 
+
+# ─── Get one ───────────────────────────────────────────────────────────────
 
 @router.get("/{employee_id}")
 async def get_employee(
@@ -111,6 +126,8 @@ async def get_employee(
         raise HTTPException(status_code=404, detail="Employee not found")
     return {"data": EmployeeResponseSchema.model_validate(employee), "message": "OK"}
 
+
+# ─── Update ────────────────────────────────────────────────────────────────
 
 @router.put("/{employee_id}")
 async def update_employee(
@@ -135,6 +152,8 @@ async def update_employee(
     return {"data": EmployeeResponseSchema.model_validate(result.scalar_one()), "message": "Employee updated"}
 
 
+# ─── Soft delete ───────────────────────────────────────────────────────────
+
 @router.delete("/{employee_id}")
 async def deactivate_employee(
     employee_id: UUID,
@@ -151,7 +170,77 @@ async def deactivate_employee(
     return {"data": None, "message": "Employee deactivated"}
 
 
-@router.post("/{employee_id}/enroll-face")
-async def enroll_face(employee_id: UUID):
-    # TODO: Phase 1 Part 4 — face enrollment via DeepFace
-    raise HTTPException(status_code=501, detail="Face enrollment not yet implemented")
+# ─── Face enrollment ───────────────────────────────────────────────────────
+
+@router.post("/{employee_id}/enroll-face", status_code=202)
+async def enroll_face(
+    employee_id: UUID,
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_role("super_admin", "hr_admin")),
+):
+    """
+    Accept 8–10 JPEG frames captured from the webcam.
+    Immediately returns 202; DeepFace embedding extraction runs in the background.
+    Poll GET /employees/{id} and check face_enrolled == true to confirm completion.
+    """
+    if not (8 <= len(files) <= 10):
+        raise HTTPException(status_code=422, detail="Provide between 8 and 10 frames for enrollment")
+
+    result = await db.execute(select(Employee).where(Employee.id == employee_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Read all frame bytes now — UploadFile objects are invalid after the request ends
+    frames: list[bytes] = [await f.read() for f in files]
+
+    background_tasks.add_task(_run_enrollment, str(employee_id), frames)
+
+    return {"data": None, "message": "Enrollment started — processing in background. Check face_enrolled status to confirm."}
+
+
+async def _run_enrollment(employee_id: str, frames: list[bytes]) -> None:
+    """Background task: extract embeddings, upload to S3, persist mean vector."""
+    from app.services.face_service import average_embeddings, extract_embedding
+    from app.utils.storage import upload_bytes
+
+    embeddings: list[list[float]] = []
+
+    for i, frame in enumerate(frames):
+        ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S") + f"_{i:02d}"
+        key = f"enrollments/{employee_id}/{ts}.jpg"
+
+        # Upload raw photo (best-effort — don't abort enrollment on S3 failure)
+        try:
+            await asyncio.to_thread(upload_bytes, frame, key)
+        except Exception as exc:
+            logger.warning("S3 upload failed for frame %d: %s", i, exc)
+
+        # Extract embedding
+        emb = await extract_embedding(frame)
+        if emb is not None:
+            embeddings.append(emb)
+        else:
+            logger.debug("No face detected in enrollment frame %d — skipping", i)
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Employee).where(Employee.id == employee_id))
+        employee = result.scalar_one_or_none()
+        if not employee:
+            return
+
+        if embeddings:
+            employee.face_embedding = average_embeddings(embeddings)
+            employee.face_enrolled = True
+            logger.info(
+                "Enrollment complete for employee %s — averaged %d/%d frames",
+                employee_id,
+                len(embeddings),
+                len(frames),
+            )
+        else:
+            employee.face_enrolled = False
+            logger.warning("Enrollment failed for employee %s — no valid faces detected", employee_id)
+
+        await session.commit()

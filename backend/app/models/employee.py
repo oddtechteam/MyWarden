@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, Column, Date, DateTime, Enum as SAEnum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -48,6 +49,8 @@ class Employee(Base):
     )
     join_date = Column(Date, nullable=True)
     base_salary = Column(Numeric(12, 2), nullable=True)
+    face_embedding = Column(Vector(512), nullable=True)
+    face_enrolled = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

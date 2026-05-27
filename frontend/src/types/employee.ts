@@ -18,6 +18,7 @@ export interface IEmployee {
   department: IDepartmentBrief | null
   join_date: string | null
   base_salary: string | null
+  face_enrolled: boolean
   is_active: boolean
   created_at: string
 }

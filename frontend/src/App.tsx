@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -13,7 +14,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return accessToken ? <>{children}</> : <Navigate to="/login" replace />
 }
 
+function BootstrapSpinner() {
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-pulse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} className="w-5 h-5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </div>
+        <p className="text-slate-500 text-sm">Loading…</p>
+      </div>
+    </div>
+  )
+}
+
 function App() {
+  const { isBootstrapping, bootstrapAuth } = useAuthStore()
+
+  useEffect(() => {
+    bootstrapAuth()
+  }, [bootstrapAuth])
+
+  if (isBootstrapping) return <BootstrapSpinner />
+
   return (
     <BrowserRouter>
       <Routes>

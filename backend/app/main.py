@@ -1,12 +1,24 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import attendance, auth, departments, employees, leave, payroll, reports
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from app.utils.storage import ensure_bucket_exists
+    import asyncio
+    await asyncio.to_thread(ensure_bucket_exists)
+    yield
+
+
 app = FastAPI(
     title="MyWarden API",
     version="1.0.0",
     description="Employee Management System API",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

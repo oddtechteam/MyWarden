@@ -35,6 +35,9 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
+# ── Local dev storage (face enrollment photos) ────────────────────────────────
+backend/local_storage/
+
 # ── Secrets — never commit ────────────────────────────────────────────────────
 .env
 *.pem
