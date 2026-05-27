@@ -5,12 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.employee import Employee
-from app.schemas.auth import LoginSchema, RefreshTokenSchema, TokenResponseSchema
+from app.schemas.auth import ChangePasswordSchema, LoginSchema, RefreshTokenSchema, TokenResponseSchema
 from app.utils.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
     get_current_user,
+    hash_password,
     verify_password,
 )
 
@@ -62,6 +63,21 @@ async def refresh_token(payload: RefreshTokenSchema, db: AsyncSession = Depends(
 @router.post("/logout")
 async def logout():
     return {"data": None, "message": "Logged out successfully"}
+
+
+@router.put("/change-password")
+async def change_password(
+    payload: ChangePasswordSchema,
+    current_user: Employee = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=422, detail="New password must be at least 8 characters")
+    current_user.password_hash = hash_password(payload.new_password)
+    await db.commit()
+    return {"data": None, "message": "Password changed successfully"}
 
 
 @router.get("/me")

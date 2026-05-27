@@ -39,6 +39,11 @@ class EmployeeUpdateSchema(BaseModel):
     base_salary: Optional[Decimal] = None
 
 
+class EmployeeSelfUpdateSchema(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+
+
 class EmployeeResponseSchema(BaseModel):
     id: UUID
     email: str

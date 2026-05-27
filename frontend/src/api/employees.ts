@@ -52,6 +52,16 @@ export async function enrollFace(employeeId: string, frames: Blob[]): Promise<vo
   })
 }
 
+export async function getMyProfile() {
+  const { data } = await api.get<ApiResponse<IEmployee>>('/api/v1/employees/me')
+  return data.data
+}
+
+export async function updateMyProfile(payload: { full_name?: string; phone?: string }) {
+  const { data } = await api.put<ApiResponse<IEmployee>>('/api/v1/employees/me', payload)
+  return data.data
+}
+
 export async function listDepartments() {
   const { data } = await api.get<ApiResponse<IDepartment[]>>('/api/v1/departments/')
   return data.data
@@ -60,4 +70,13 @@ export async function listDepartments() {
 export async function createDepartment(payload: { name: string; description?: string }) {
   const { data } = await api.post<ApiResponse<IDepartment>>('/api/v1/departments/', payload)
   return data.data
+}
+
+export async function updateDepartment(id: string, payload: { name?: string; description?: string }) {
+  const { data } = await api.put<ApiResponse<IDepartment>>(`/api/v1/departments/${id}`, payload)
+  return data.data
+}
+
+export async function deactivateDepartment(id: string) {
+  await api.delete(`/api/v1/departments/${id}`)
 }

@@ -25,3 +25,11 @@ export async function getMe() {
   const { data } = await api.get<{ data: IUser; message: string }>('/api/v1/auth/me')
   return data
 }
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const { data } = await api.put<{ data: null; message: string }>('/api/v1/auth/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  })
+  return data
+}

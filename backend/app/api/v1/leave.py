@@ -385,6 +385,8 @@ async def approve_leave(
 
     review = LeaveRequestReviewSchema(status=LeaveStatus.approved, review_note=payload.review_note)
     req = await leave_service.review_leave(db, req, current_user, review)
+    from workers.notification_tasks import notify_leave_status_changed
+    notify_leave_status_changed.delay(str(req.id))
     loaded = await _load_request(db, req.id)
     return {"data": LeaveRequestResponseSchema.model_validate(loaded), "message": "Leave request approved"}
 
@@ -406,6 +408,8 @@ async def reject_leave(
 
     review = LeaveRequestReviewSchema(status=LeaveStatus.rejected, review_note=payload.review_note)
     req = await leave_service.review_leave(db, req, current_user, review)
+    from workers.notification_tasks import notify_leave_status_changed
+    notify_leave_status_changed.delay(str(req.id))
     loaded = await _load_request(db, req.id)
     return {"data": LeaveRequestResponseSchema.model_validate(loaded), "message": "Leave request rejected"}
 

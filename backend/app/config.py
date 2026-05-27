@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     DEEPFACE_MODEL: str = "Facenet512"
     FACE_MATCH_THRESHOLD: float = 0.80
 
+    # SMTP — set SMTP_ENABLED=true in production
+    SMTP_ENABLED: bool = False
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_TLS: bool = True          # True = STARTTLS on port 587; False = SSL on port 465
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""            # display name + address, e.g. "MyWarden <no-reply@company.com>"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

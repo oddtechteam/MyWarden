@@ -14,7 +14,7 @@ Built in phases. Read the current phase status below before writing any code.
 | 1 | Foundation — scaffold, auth, employee master, face enrollment | ✅ Complete |
 | 2 | Attendance & leave — face check-in, shift, leave module | ✅ Complete |
 | 3 | Payroll — salary engine, deductions, payslips | ✅ Complete |
-| 4 | Reports, self-service portal, notifications, onboarding | 🔲 Not started |
+| 4 | Reports, self-service portal, notifications, onboarding | ✅ Complete |
 
 **Update this table as you complete phases.**
 

@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import Sidebar from './Sidebar'
+import OnboardingModal from './OnboardingModal'
 
 interface LayoutProps {
   children: ReactNode
@@ -18,6 +19,7 @@ export default function Layout({ children, title }: LayoutProps) {
         )}
         <main className="flex-1 p-8">{children}</main>
       </div>
+      <OnboardingModal />
     </div>
   )
 }

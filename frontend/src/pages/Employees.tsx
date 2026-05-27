@@ -7,6 +7,9 @@ import {
   updateEmployee,
   deactivateEmployee,
   listDepartments,
+  createDepartment,
+  updateDepartment,
+  deactivateDepartment,
   enrollFace,
 } from '@/api/employees'
 import type { IEmployee, IEmployeeCreate, IEmployeeUpdate, IDepartment, UserRole, EmployeeType } from '@/types/employee'
@@ -58,11 +61,12 @@ interface FormProps {
   mode: 'create' | 'edit'
   initial?: IEmployee
   departments: IDepartment[]
+  onDepartmentCreated: (dept: IDepartment) => void
   onSubmit: (data: IEmployeeCreate | IEmployeeUpdate) => Promise<void>
   onClose: () => void
 }
 
-function EmployeeForm({ mode, initial, departments, onSubmit, onClose }: FormProps) {
+function EmployeeForm({ mode, initial, departments, onDepartmentCreated, onSubmit, onClose }: FormProps) {
   const [form, setForm] = useState({
     full_name: initial?.full_name ?? '',
     email: initial?.email ?? '',
@@ -77,6 +81,10 @@ function EmployeeForm({ mode, initial, departments, onSubmit, onClose }: FormPro
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const [showNewDept, setShowNewDept] = useState(false)
+  const [newDeptName, setNewDeptName] = useState('')
+  const [newDeptSaving, setNewDeptSaving] = useState(false)
+  const [newDeptErr, setNewDeptErr] = useState('')
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -110,6 +118,25 @@ function EmployeeForm({ mode, initial, departments, onSubmit, onClose }: FormPro
       setErr(msg)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleQuickCreateDept() {
+    if (!newDeptName.trim()) return
+    setNewDeptSaving(true)
+    setNewDeptErr('')
+    try {
+      const dept = await createDepartment({ name: newDeptName.trim() })
+      onDepartmentCreated(dept)
+      set('department_id', dept.id)
+      setNewDeptName('')
+      setShowNewDept(false)
+    } catch (e: unknown) {
+      setNewDeptErr(
+        (e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? 'Failed to create'
+      )
+    } finally {
+      setNewDeptSaving(false)
     }
   }
 
@@ -234,7 +261,19 @@ function EmployeeForm({ mode, initial, departments, onSubmit, onClose }: FormPro
           </div>
 
           <div>
-            <label className={labelCls}>Department</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-slate-400">Department</label>
+              <button
+                type="button"
+                onClick={() => { setShowNewDept((v) => !v); setNewDeptErr('') }}
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+              >
+                <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                  <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
+                </svg>
+                New department
+              </button>
+            </div>
             <select
               className={inputCls}
               value={form.department_id}
@@ -245,6 +284,27 @@ function EmployeeForm({ mode, initial, departments, onSubmit, onClose }: FormPro
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
+            {showNewDept && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={newDeptName}
+                  onChange={(e) => setNewDeptName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleQuickCreateDept())}
+                  placeholder="Department name"
+                  className="flex-1 bg-slate-800/60 border border-indigo-500/40 text-slate-100 placeholder-slate-500 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleQuickCreateDept}
+                  disabled={newDeptSaving || !newDeptName.trim()}
+                  className="px-3 py-2 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 transition-colors shrink-0"
+                >
+                  {newDeptSaving ? '…' : 'Add'}
+                </button>
+              </div>
+            )}
+            {newDeptErr && <p className="text-red-400 text-xs mt-1">{newDeptErr}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -507,6 +567,231 @@ function EnrollmentModal({ employee, onClose, onDone }: { employee: IEmployee; o
   )
 }
 
+// ─── Departments manager modal ─────────────────────────────────────────────
+
+function DepartmentsModal({
+  departments,
+  onClose,
+  onChange,
+}: {
+  departments: IDepartment[]
+  onClose: () => void
+  onChange: (depts: IDepartment[]) => void
+}) {
+  const [list, setList] = useState<IDepartment[]>(departments)
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [deactivateId, setDeactivateId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function handleAdd() {
+    if (!newName.trim()) return
+    setSaving(true); setErr('')
+    try {
+      const dept = await createDepartment({ name: newName.trim(), description: newDesc.trim() || undefined })
+      const updated = [...list, dept].sort((a, b) => a.name.localeCompare(b.name))
+      setList(updated); onChange(updated)
+      setNewName(''); setNewDesc(''); setAdding(false)
+    } catch (e: unknown) {
+      setErr((e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? 'Failed to create')
+    } finally { setSaving(false) }
+  }
+
+  async function handleEdit(id: string) {
+    if (!editName.trim()) return
+    setSaving(true); setErr('')
+    try {
+      const dept = await updateDepartment(id, { name: editName.trim(), description: editDesc.trim() || undefined })
+      const updated = list.map((d) => (d.id === id ? dept : d)).sort((a, b) => a.name.localeCompare(b.name))
+      setList(updated); onChange(updated)
+      setEditId(null)
+    } catch (e: unknown) {
+      setErr((e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? 'Failed to update')
+    } finally { setSaving(false) }
+  }
+
+  async function handleDeactivate(id: string) {
+    setSaving(true); setErr('')
+    try {
+      await deactivateDepartment(id)
+      const updated = list.filter((d) => d.id !== id)
+      setList(updated); onChange(updated)
+      setDeactivateId(null)
+    } catch (e: unknown) {
+      setErr((e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? 'Failed to deactivate')
+    } finally { setSaving(false) }
+  }
+
+  const inputCls = 'bg-slate-800/60 border border-slate-700/60 text-slate-100 placeholder-slate-500 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-900 border border-slate-800/60 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60 shrink-0">
+          <div>
+            <h2 className="text-slate-100 font-semibold">Manage Departments</h2>
+            <p className="text-slate-500 text-xs mt-0.5">{list.length} department{list.length !== 1 ? 's' : ''}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Department list */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+          {list.length === 0 && (
+            <p className="text-center text-slate-600 text-sm py-8">No departments yet. Add one below.</p>
+          )}
+          {list.map((dept) => (
+            <div key={dept.id} className="rounded-xl border border-slate-800 bg-slate-800/30 px-4 py-3">
+              {editId === dept.id ? (
+                <div className="space-y-2">
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className={`w-full ${inputCls}`}
+                    placeholder="Department name"
+                    autoFocus
+                  />
+                  <input
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className={`w-full ${inputCls}`}
+                    placeholder="Description (optional)"
+                  />
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => handleEdit(dept.id)}
+                      disabled={saving}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                    >
+                      {saving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditId(null)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : deactivateId === dept.id ? (
+                <div>
+                  <p className="text-slate-300 text-sm mb-2">
+                    Remove <span className="font-semibold text-slate-100">{dept.name}</span>? Employees in this department will be unaffected but unassigned.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleDeactivate(dept.id)}
+                      disabled={saving}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors"
+                    >
+                      {saving ? 'Removing…' : 'Remove'}
+                    </button>
+                    <button
+                      onClick={() => setDeactivateId(null)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-slate-200 text-sm font-medium truncate">{dept.name}</p>
+                    {dept.description && (
+                      <p className="text-slate-500 text-xs mt-0.5 truncate">{dept.description}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => { setEditId(dept.id); setEditName(dept.name); setEditDesc(dept.description ?? '') }}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                      title="Edit"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setDeactivateId(dept.id)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Remove"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add new department */}
+        <div className="px-6 py-4 border-t border-slate-800/60 shrink-0">
+          {err && <p className="text-red-400 text-xs mb-3">{err}</p>}
+          {adding ? (
+            <div className="space-y-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                placeholder="Department name *"
+                className={`w-full ${inputCls}`}
+                autoFocus
+              />
+              <input
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Description (optional)"
+                className={`w-full ${inputCls}`}
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleAdd}
+                  disabled={saving || !newName.trim()}
+                  className="flex-1 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50 transition-all"
+                >
+                  {saving ? 'Adding…' : 'Add Department'}
+                </button>
+                <button
+                  onClick={() => { setAdding(false); setNewName(''); setNewDesc(''); setErr('') }}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAdding(true)}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/10 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+              </svg>
+              Add Department
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Confirm deactivate dialog ─────────────────────────────────────────────
 
 function ConfirmDialog({
@@ -578,6 +863,7 @@ export default function Employees() {
   const [editTarget, setEditTarget] = useState<IEmployee | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<IEmployee | null>(null)
   const [enrollTarget, setEnrollTarget] = useState<IEmployee | null>(null)
+  const [showDepts, setShowDepts] = useState(false)
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true)
@@ -627,16 +913,28 @@ export default function Employees() {
           <p className="text-slate-400 text-sm">
             {loading ? 'Loading…' : `${total} employee${total !== 1 ? 's' : ''} found`}
           </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/20 self-start sm:self-auto"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Employee
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => setShowDepts(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700/60"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-4 h-4">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              Departments
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/20"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Employee
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -833,10 +1131,21 @@ export default function Employees() {
         )}
       </div>
 
+      {showDepts && (
+        <DepartmentsModal
+          departments={departments}
+          onClose={() => setShowDepts(false)}
+          onChange={setDepartments}
+        />
+      )}
+
       {showCreate && (
         <EmployeeForm
           mode="create"
           departments={departments}
+          onDepartmentCreated={(dept) =>
+            setDepartments((prev) => [...prev, dept].sort((a, b) => a.name.localeCompare(b.name)))
+          }
           onSubmit={handleCreate}
           onClose={() => setShowCreate(false)}
         />
@@ -847,6 +1156,9 @@ export default function Employees() {
           mode="edit"
           initial={editTarget}
           departments={departments}
+          onDepartmentCreated={(dept) =>
+            setDepartments((prev) => [...prev, dept].sort((a, b) => a.name.localeCompare(b.name)))
+          }
           onSubmit={handleEdit}
           onClose={() => setEditTarget(null)}
         />

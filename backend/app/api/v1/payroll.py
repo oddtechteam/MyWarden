@@ -202,6 +202,8 @@ async def process_payroll_run(
     """Compute salary entries and advance the run from DRAFT → PROCESSED."""
     run = await _get_run_or_404(run_id, db)
     run = await payroll_service.process_run(db, run, current_user)
+    from workers.notification_tasks import notify_payroll_processed
+    notify_payroll_processed.delay(str(run.id))
     return {"data": PayrollRunResponseSchema.model_validate(run), "message": "Payroll run processed"}
 
 
@@ -226,6 +228,8 @@ async def mark_payroll_paid(
     """Advance the run from APPROVED → PAID."""
     run = await _get_run_or_404(run_id, db)
     run = await payroll_service.mark_paid(db, run)
+    from workers.notification_tasks import notify_payroll_paid
+    notify_payroll_paid.delay(str(run.id))
     return {"data": PayrollRunResponseSchema.model_validate(run), "message": "Payroll run marked as paid"}
 
 

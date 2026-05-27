@@ -14,3 +14,8 @@ class TokenResponseSchema(BaseModel):
 
 class RefreshTokenSchema(BaseModel):
     refresh_token: str
+
+
+class ChangePasswordSchema(BaseModel):
+    current_password: str
+    new_password: str

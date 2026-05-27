@@ -7,6 +7,9 @@ import Attendance from './pages/Attendance'
 import Payroll from './pages/Payroll'
 import Leave from './pages/Leave'
 import CheckinKiosk from './pages/CheckinKiosk'
+import Reports from './pages/Reports'
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 import { useAuthStore } from './store/authStore'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -48,7 +51,10 @@ function App() {
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
         <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
         <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
-        <Route path="/kiosk" element={<ProtectedRoute><CheckinKiosk /></ProtectedRoute>} />
+        <Route path="/kiosk"   element={<ProtectedRoute><CheckinKiosk /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

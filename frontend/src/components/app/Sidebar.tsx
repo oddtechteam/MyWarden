@@ -60,6 +60,18 @@ const nav = [
     ),
   },
   {
+    to: '/reports',
+    label: 'Reports',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-5 h-5">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6"  y1="20" x2="6"  y2="14" />
+        <line x1="2"  y1="20" x2="22" y2="20" />
+      </svg>
+    ),
+  },
+  {
     to: '/kiosk',
     label: 'Check-in Kiosk',
     icon: (
@@ -131,21 +143,57 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {/* Settings — super_admin only */}
+      {user?.role === 'super_admin' && (
+        <div className="px-3 pb-2 border-t border-slate-800/60 pt-3 shrink-0">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
+                isActive
+                  ? 'bg-indigo-600/20 text-indigo-400'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span className={isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300 transition-colors'}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-5 h-5">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                </span>
+                Settings
+                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+              </>
+            )}
+          </NavLink>
+        </div>
+      )}
+
       {/* User profile + logout */}
-      <div className="px-3 pb-4 border-t border-slate-800/60 pt-3 shrink-0 space-y-1">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+      <div className={`px-3 pb-4 ${user?.role === 'super_admin' ? '' : 'border-t border-slate-800/60 pt-3'} shrink-0 space-y-1`}>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group ${
+              isActive ? 'bg-indigo-600/20' : 'hover:bg-slate-800/60'
+            }`
+          }
+        >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-slate-200 text-sm font-medium truncate">
+            <p className="text-slate-200 text-sm font-medium truncate group-hover:text-white transition-colors">
               {user?.full_name ?? user?.email ?? 'User'}
             </p>
             <p className="text-slate-500 text-xs truncate capitalize">
               {user?.role?.replace('_', ' ') ?? 'employee'}
             </p>
           </div>
-        </div>
+        </NavLink>
 
         <button
           onClick={handleLogout}

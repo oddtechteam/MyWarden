@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import AsyncSessionLocal, get_db
 from app.models.employee import Employee, EmployeeType
-from app.schemas.employee import EmployeeCreateSchema, EmployeeResponseSchema, EmployeeUpdateSchema
+from app.schemas.employee import EmployeeCreateSchema, EmployeeResponseSchema, EmployeeSelfUpdateSchema, EmployeeUpdateSchema
 from app.utils.auth import get_current_user, hash_password, require_role
 
 logger = logging.getLogger(__name__)
@@ -108,6 +108,25 @@ async def get_my_profile(
         select(Employee).options(selectinload(Employee.department)).where(Employee.id == current_user.id)
     )
     return {"data": EmployeeResponseSchema.model_validate(result.scalar_one()), "message": "OK"}
+
+
+# ─── Self-update ───────────────────────────────────────────────────────────
+
+@router.put("/me")
+async def update_my_profile(
+    payload: EmployeeSelfUpdateSchema,
+    current_user: Employee = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(current_user, field, value)
+
+    await db.commit()
+
+    result = await db.execute(
+        select(Employee).options(selectinload(Employee.department)).where(Employee.id == current_user.id)
+    )
+    return {"data": EmployeeResponseSchema.model_validate(result.scalar_one()), "message": "Profile updated"}
 
 
 # ─── Get one ───────────────────────────────────────────────────────────────
