@@ -2,27 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login, getMe } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
+import WardenBadge from '@/components/app/WardenBadge'
 
-// ─── Brand ───────────────────────────────────────────────────────────────────
+// ─── Brand colours ───────────────────────────────────────────────────────────
 const B = { blue: '#2563EB', blueDark: '#1D4ED8', cyan: '#22D3EE', white: '#F8FAFC' }
-
-// ─── Logo mark: WardenBadge (Concept 06) ─────────────────────────────────────
-function WardenBadge({ size = 40 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <path d="M22 8 H42 L56 22 V42 L42 56 H22 L8 42 V22 Z" fill={B.blue} />
-      <path
-        d="M20 42 V22 L32 34 L44 22 V42"
-        stroke={B.white}
-        strokeWidth="4.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <circle cx="32" cy="47" r="2.8" fill={B.cyan} />
-    </svg>
-  )
-}
 
 // ─── Animated hero graphic ────────────────────────────────────────────────────
 function HeroGraphic() {
@@ -410,6 +393,21 @@ export default function Login() {
                 Need an account?{' '}
                 <span className="text-slate-500 font-medium">Contact your HR administrator.</span>
               </p>
+            </div>
+
+            {/* Kiosk access */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => navigate('/kiosk')}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-400 border border-slate-800 hover:border-slate-600 hover:text-slate-200 hover:bg-slate-900/60 transition-all duration-200 group"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                Attendance Kiosk
+              </button>
             </div>
 
             {/* Mobile-only feature row */}

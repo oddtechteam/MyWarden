@@ -73,3 +73,31 @@ def require_role(*roles: str):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return current_user
     return dependency
+
+
+# ─── Kiosk session token ────────────────────────────────────────────────────
+
+KIOSK_TOKEN_EXPIRE_HOURS = 8
+
+
+def create_kiosk_token(super_admin_id: str) -> str:
+    payload = {"sub": super_admin_id, "type": "kiosk"}
+    expire = datetime.utcnow() + timedelta(hours=KIOSK_TOKEN_EXPIRE_HOURS)
+    payload.update({"exp": expire})
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+async def verify_kiosk_token(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> str:
+    """FastAPI dependency — validates kiosk JWT, returns super_admin_id."""
+    try:
+        payload = decode_token(credentials.credentials)
+        if payload.get("type") != "kiosk":
+            raise HTTPException(status_code=401, detail="Invalid kiosk token")
+        sub = payload.get("sub")
+        if not sub:
+            raise HTTPException(status_code=401, detail="Invalid kiosk token")
+        return sub
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Kiosk token invalid or expired")

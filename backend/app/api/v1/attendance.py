@@ -1,7 +1,11 @@
 """
 Attendance API.
 
-Public (kiosk) endpoints — no JWT required, face recognition IS the auth:
+Kiosk v2 endpoints (super-admin face-gated):
+  POST /kiosk/auth  — verify super admin face, returns kiosk JWT
+  POST /kiosk/stamp — auto check-in OR check-out (requires kiosk JWT)
+
+Kiosk v1 endpoints (no JWT, face IS the auth — kept for compatibility):
   POST /checkin   — identify employee by face and stamp check-in
   POST /checkout  — identify employee by face and stamp check-out
 
@@ -17,23 +21,24 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.attendance import AttendanceLog, AttendanceStatus, CheckInMethod
-from app.models.employee import Employee
+from app.models.employee import Employee, UserRole
 from app.models.shift import Shift
 from app.schemas.attendance import (
     AttendanceLogResponseSchema,
     AttendanceLogUpdateSchema,
     CheckinResponseSchema,
 )
+from app.config import settings
 from app.services import attendance_service
 from app.services.face_service import extract_embedding
-from app.utils.auth import get_current_user, require_role
+from app.utils.auth import create_kiosk_token, get_current_user, require_role, verify_kiosk_token, verify_password
 from app.utils.storage import upload_bytes
 
 logger = logging.getLogger(__name__)
@@ -152,6 +157,102 @@ async def face_checkout(
     message = f"Goodbye, {employee.full_name}! Checked out at {now_utc.strftime('%H:%M')} UTC."
 
     return {"data": _build_kiosk_response(log, employee, shift_result), "message": message}
+
+
+# ─── POST /kiosk/auth — super admin credential verification ─────────────────
+
+@router.post("/kiosk/auth", status_code=200)
+async def kiosk_auth(
+    email: str = Form(...),
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Kiosk unlock — no JWT required.
+    Accepts super_admin email + password, returns a short-lived kiosk JWT.
+    """
+    result = await db.execute(
+        select(Employee)
+        .where(Employee.email == email)
+        .where(Employee.is_active.is_(True))
+    )
+    admin = result.scalar_one_or_none()
+
+    if admin is None or not verify_password(password, admin.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if admin.role != UserRole.super_admin:
+        raise HTTPException(status_code=403, detail="Only Super Admins can unlock the kiosk.")
+
+    token = create_kiosk_token(str(admin.id))
+    return {
+        "data": {"kiosk_token": token, "admin_name": admin.full_name},
+        "message": f"Kiosk unlocked by {admin.full_name}.",
+    }
+
+
+# ─── POST /kiosk/stamp — auto check-in or check-out ────────────────────────
+
+@router.post("/kiosk/stamp", status_code=200)
+async def kiosk_stamp(
+    file: UploadFile = File(..., description="Single JPEG frame from webcam"),
+    db: AsyncSession = Depends(get_db),
+    _kiosk_admin_id: str = Depends(verify_kiosk_token),
+):
+    """
+    Kiosk attendance stamp — requires a valid kiosk JWT.
+    Automatically determines check-in vs check-out:
+      - No log today          → check-in
+      - Open log (no checkout) → check-out
+      - Completed log         → 409 already done
+    """
+    embedding, frame = await _extract_or_422(file)
+    employee = await _match_or_404(db, embedding)
+
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    work_date = now_utc.date()
+
+    log = await attendance_service.get_todays_log(db, str(employee.id), work_date)
+
+    if log is None or log.check_in_at is None:
+        # ── Check-in path ──────────────────────────────────────────────────
+        shift = await attendance_service.find_active_shift(db, now_utc)
+
+        photo_key: Optional[str] = None
+        try:
+            ts = now_utc.strftime("%Y%m%dT%H%M%S")
+            photo_key = f"checkins/{employee.id}/{work_date}/{ts}.jpg"
+            await asyncio.to_thread(upload_bytes, frame, photo_key)
+        except Exception as exc:
+            logger.warning("Failed to upload kiosk check-in photo for %s: %s", employee.id, exc)
+
+        log = await attendance_service.record_checkin(
+            db, str(employee.id), now_utc, CheckInMethod.face, photo_key, shift
+        )
+        status_label = "on time" if log.status == AttendanceStatus.present else "late"
+        message = f"Welcome, {employee.full_name}! Checked in at {now_utc.strftime('%H:%M')} UTC ({status_label})."
+        return {
+            "data": {**_build_kiosk_response(log, employee, shift).model_dump(), "action": "checkin"},
+            "message": message,
+        }
+
+    if log.check_out_at is None:
+        # ── Check-out path ─────────────────────────────────────────────────
+        shift_result = None
+        if log.shift_id:
+            shift_result = await db.get(Shift, log.shift_id)
+
+        log = await attendance_service.record_checkout(db, log, now_utc, CheckInMethod.face)
+        message = f"Goodbye, {employee.full_name}! Checked out at {now_utc.strftime('%H:%M')} UTC."
+        return {
+            "data": {**_build_kiosk_response(log, employee, shift_result).model_dump(), "action": "checkout"},
+            "message": message,
+        }
+
+    # ── Both timestamps already recorded ──────────────────────────────────
+    raise HTTPException(
+        status_code=409,
+        detail=f"{employee.full_name} has already completed attendance for today.",
+    )
 
 
 # ─── GET / — list logs ──────────────────────────────────────────────────────

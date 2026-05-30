@@ -52,6 +52,10 @@ export async function enrollFace(employeeId: string, frames: Blob[]): Promise<vo
   })
 }
 
+export async function resetFaceEnrollment(employeeId: string): Promise<void> {
+  await api.delete(`/api/v1/employees/${employeeId}/enroll-face`)
+}
+
 export async function getMyProfile() {
   const { data } = await api.get<ApiResponse<IEmployee>>('/api/v1/employees/me')
   return data.data

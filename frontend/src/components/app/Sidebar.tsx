@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { logout } from '@/api/auth'
+import WardenBadge from './WardenBadge'
 
 const nav = [
   {
@@ -71,16 +72,6 @@ const nav = [
       </svg>
     ),
   },
-  {
-    to: '/kiosk',
-    label: 'Check-in Kiosk',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-5 h-5">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-      </svg>
-    ),
-  },
 ]
 
 export default function Sidebar() {
@@ -99,90 +90,137 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 flex flex-col bg-slate-950 border-r border-slate-800/60 z-40">
-      {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b border-slate-800/60 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} className="w-4.5 h-4.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+
+      {/* ── Brand ─────────────────────────────────────────── */}
+      <div className="h-16 flex items-center px-5 border-b border-slate-800/60 shrink-0">
+        <div className="flex items-center gap-3">
+          {/* Logo with breathing glow */}
+          <div className="relative flex-shrink-0 flex items-center justify-center">
+            <div className="absolute w-10 h-10 rounded-full bg-blue-500/20 blur-md mw-sb-logo-glow pointer-events-none" />
+            <WardenBadge size={30} />
           </div>
-          <span className="text-slate-100 font-bold text-lg tracking-tight">MyWarden</span>
+          <div>
+            <p className="text-slate-100 font-bold text-base tracking-tight leading-none">MyWarden</p>
+            <p className="text-slate-600 text-[10px] tracking-wide mt-0.5">Management System</p>
+          </div>
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* ── Navigation ────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
-        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
           Main
         </p>
-        {nav.map(({ to, label, icon }) => (
-          <NavLink
+
+        {nav.map(({ to, label, icon }, i) => (
+          <div
             key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`
-            }
+            className="mw-sb-item"
+            style={{ animationDelay: `${i * 40}ms` }}
           >
-            {({ isActive }) => (
-              <>
-                <span className={isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300 transition-colors'}>
-                  {icon}
-                </span>
-                {label}
-                {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                )}
-              </>
-            )}
-          </NavLink>
+            <NavLink
+              to={to}
+              className={({ isActive }) =>
+                `relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-indigo-600/15 text-indigo-400'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:translate-x-0.5'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {/* Active left accent bar */}
+                  {isActive && (
+                    <span className="mw-sb-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-indigo-400" />
+                  )}
+
+                  {/* Icon */}
+                  <span
+                    className={`transition-all duration-200 ${
+                      isActive
+                        ? 'text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.6)]'
+                        : 'text-slate-500 group-hover:text-slate-300 group-hover:scale-105'
+                    }`}
+                  >
+                    {icon}
+                  </span>
+
+                  {/* Label */}
+                  <span className="flex-1 transition-transform duration-200 group-hover:translate-x-0.5">
+                    {label}
+                  </span>
+
+                  {/* Active pulse dot */}
+                  {isActive && (
+                    <span className="mw-sb-active-dot w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          </div>
         ))}
       </nav>
 
-      {/* Settings — super_admin only */}
+      {/* ── Settings (super_admin only) ───────────────────── */}
       {user?.role === 'super_admin' && (
-        <div className="px-3 pb-2 border-t border-slate-800/60 pt-3 shrink-0">
+        <div
+          className="mw-sb-item px-3 pb-2 border-t border-slate-800/60 pt-3 shrink-0"
+          style={{ animationDelay: `${nav.length * 40}ms` }}
+        >
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
+              `relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
                 isActive
-                  ? 'bg-indigo-600/20 text-indigo-400'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600/15 text-indigo-400'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:translate-x-0.5'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300 transition-colors'}>
+                {isActive && (
+                  <span className="mw-sb-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-indigo-400" />
+                )}
+                <span
+                  className={`transition-all duration-200 ${
+                    isActive
+                      ? 'text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.6)]'
+                      : 'text-slate-500 group-hover:text-slate-300 group-hover:scale-105'
+                  }`}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-5 h-5">
                     <circle cx="12" cy="12" r="3" />
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                   </svg>
                 </span>
-                Settings
-                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+                <span className="flex-1 transition-transform duration-200 group-hover:translate-x-0.5">
+                  Settings
+                </span>
+                {isActive && (
+                  <span className="mw-sb-active-dot w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                )}
               </>
             )}
           </NavLink>
         </div>
       )}
 
-      {/* User profile + logout */}
-      <div className={`px-3 pb-4 ${user?.role === 'super_admin' ? '' : 'border-t border-slate-800/60 pt-3'} shrink-0 space-y-1`}>
+      {/* ── User profile + logout ─────────────────────────── */}
+      <div
+        className={`mw-sb-item px-3 pb-4 shrink-0 space-y-1 ${user?.role === 'super_admin' ? '' : 'border-t border-slate-800/60 pt-3'}`}
+        style={{ animationDelay: `${(nav.length + 1) * 40}ms` }}
+      >
         <NavLink
           to="/profile"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group ${
-              isActive ? 'bg-indigo-600/20' : 'hover:bg-slate-800/60'
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group hover:translate-x-0.5 ${
+              isActive ? 'bg-indigo-600/15' : 'hover:bg-slate-800/60'
             }`
           }
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-md shadow-indigo-500/20">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
@@ -197,14 +235,14 @@ export default function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:translate-x-0.5 transition-all duration-200 group"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-5 h-5 text-slate-500 group-hover:text-red-400 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-5 h-5 text-slate-500 group-hover:text-red-400 transition-colors shrink-0">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          Sign out
+          <span className="transition-transform duration-200 group-hover:translate-x-0.5">Sign out</span>
         </button>
       </div>
     </aside>

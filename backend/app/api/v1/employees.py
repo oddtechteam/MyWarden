@@ -263,3 +263,28 @@ async def _run_enrollment(employee_id: str, frames: list[bytes]) -> None:
             logger.warning("Enrollment failed for employee %s — no valid faces detected", employee_id)
 
         await session.commit()
+
+
+# ─── Reset face enrollment ─────────────────────────────────────────────────
+
+@router.delete("/{employee_id}/enroll-face", status_code=200)
+async def reset_face_enrollment(
+    employee_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_role("super_admin", "hr_admin")),
+):
+    """
+    Clear an employee's face embedding and mark them as not enrolled.
+    Call this before re-enrolling to start fresh.
+    """
+    result = await db.execute(select(Employee).where(Employee.id == employee_id))
+    employee = result.scalar_one_or_none()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    employee.face_embedding = None
+    employee.face_enrolled = False
+    await db.commit()
+
+    logger.info("Face enrollment cleared for employee %s", employee_id)
+    return {"data": None, "message": "Face enrollment cleared. The employee can now be re-enrolled."}

@@ -1,3 +1,4 @@
+import axios from 'axios'
 import api from '@/lib/axios'
 import type {
   IAttendanceListResponse,
@@ -11,7 +12,48 @@ interface ApiResponse<T> {
   message: string
 }
 
-// ─── Kiosk (public endpoints — JWT attached but ignored by server) ──────────
+// ─── Kiosk v2 — admin auth + auto stamp ────────────────────────────────────
+
+export interface IKioskAuthResponse {
+  kiosk_token: string
+  admin_name: string
+}
+
+export interface IKioskStampResponse extends ICheckinResponse {
+  action: 'checkin' | 'checkout'
+}
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+export async function verifyKioskAdmin(email: string, password: string): Promise<IKioskAuthResponse> {
+  const form = new FormData()
+  form.append('email', email)
+  form.append('password', password)
+  const { data } = await axios.post<ApiResponse<IKioskAuthResponse>>(
+    `${BASE_URL}/api/v1/attendance-logs/kiosk/auth`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return data.data
+}
+
+export async function autoStamp(blob: Blob, kioskToken: string): Promise<IKioskStampResponse> {
+  const form = new FormData()
+  form.append('file', blob, 'frame.jpg')
+  const { data } = await axios.post<ApiResponse<IKioskStampResponse>>(
+    `${BASE_URL}/api/v1/attendance-logs/kiosk/stamp`,
+    form,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${kioskToken}`,
+      },
+    },
+  )
+  return data.data
+}
+
+// ─── Kiosk v1 (public endpoints — JWT attached but ignored by server) ───────
 
 export async function submitCheckin(blob: Blob): Promise<ICheckinResponse> {
   const form = new FormData()

@@ -11,6 +11,7 @@ import {
   updateDepartment,
   deactivateDepartment,
   enrollFace,
+  resetFaceEnrollment,
 } from '@/api/employees'
 import type { IEmployee, IEmployeeCreate, IEmployeeUpdate, IDepartment, UserRole, EmployeeType } from '@/types/employee'
 
@@ -792,6 +793,59 @@ function DepartmentsModal({
   )
 }
 
+// ─── Confirm reset enrollment dialog ──────────────────────────────────────
+
+function ResetEnrollmentDialog({
+  employee,
+  onConfirm,
+  onClose,
+}: {
+  employee: IEmployee
+  onConfirm: () => Promise<void>
+  onClose: () => void
+}) {
+  const [loading, setLoading] = useState(false)
+  async function go() {
+    setLoading(true)
+    await onConfirm()
+    setLoading(false)
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-900 border border-slate-800/60 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-amber-400">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </div>
+        <h3 className="text-slate-100 font-semibold text-center mb-1">Reset Face Enrollment</h3>
+        <p className="text-slate-400 text-sm text-center mb-6">
+          This will clear the stored face data for{' '}
+          <span className="text-slate-200 font-medium">{employee.full_name ?? employee.email}</span>.
+          They will need to be re-enrolled before face check-in works.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={go}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Resetting…' : 'Reset'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Confirm deactivate dialog ─────────────────────────────────────────────
 
 function ConfirmDialog({
@@ -863,6 +917,7 @@ export default function Employees() {
   const [editTarget, setEditTarget] = useState<IEmployee | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<IEmployee | null>(null)
   const [enrollTarget, setEnrollTarget] = useState<IEmployee | null>(null)
+  const [resetTarget, setResetTarget] = useState<IEmployee | null>(null)
   const [showDepts, setShowDepts] = useState(false)
 
   const fetchEmployees = useCallback(async () => {
@@ -902,6 +957,13 @@ export default function Employees() {
     if (!deleteTarget) return
     await deactivateEmployee(deleteTarget.id)
     setDeleteTarget(null)
+    await fetchEmployees()
+  }
+
+  async function handleResetEnrollment() {
+    if (!resetTarget) return
+    await resetFaceEnrollment(resetTarget.id)
+    setResetTarget(null)
     await fetchEmployees()
   }
 
@@ -1074,6 +1136,18 @@ export default function Employees() {
                                 <circle cx="12" cy="13" r="4" />
                               </svg>
                             </button>
+                            {emp.face_enrolled && (
+                              <button
+                                onClick={() => setResetTarget(emp)}
+                                title="Reset face enrollment"
+                                className="p-2 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="w-4 h-4">
+                                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                  <path d="M3 3v5h5" />
+                                </svg>
+                              </button>
+                            )}
                             <button
                               onClick={() => setEditTarget(emp)}
                               title="Edit"
@@ -1180,6 +1254,14 @@ export default function Employees() {
             setEnrollTarget(null)
             fetchEmployees()
           }}
+        />
+      )}
+
+      {resetTarget && (
+        <ResetEnrollmentDialog
+          employee={resetTarget}
+          onConfirm={handleResetEnrollment}
+          onClose={() => setResetTarget(null)}
         />
       )}
     </Layout>

@@ -51,7 +51,7 @@ function App() {
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
         <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
         <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
-        <Route path="/kiosk"   element={<ProtectedRoute><CheckinKiosk /></ProtectedRoute>} />
+        <Route path="/kiosk"   element={<CheckinKiosk />} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
